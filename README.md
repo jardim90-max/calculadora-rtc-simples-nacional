@@ -72,11 +72,16 @@ cd calculadora-rtc-simples-nacional
 
 O perfil `offline` lê o banco `./calculadora/db/calculadora-pro.db`, definido por `application.db.filename` em `application-offline.yml`. O caminho é relativo à raiz do projeto e o banco é aberto em modo somente leitura.
 
-> **Atenção:** use os scripts SQL para gerar o arquivo do Banco de Dados localizados no repositório https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional.git
+> **Atenção:** os scripts SQL que geram o banco de dados ficam na pasta `flyway/` do repositório https://github.com/ReceitaFederal/calculadora-rtc-regime-regular (a mesma origem usada pela pipeline de CI deste projeto).
 
 > **Atenção:** a aplicação só funciona se o banco estiver gerado. Sem ele, o perfil offline não inicia.
 
-Copie para a raiz deste projeto a pasta flyway/ presente no repositório https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional.git
+Copie para a raiz deste projeto a pasta `flyway/` do repositório https://github.com/ReceitaFederal/calculadora-rtc-regime-regular:
+
+```bash
+git clone --depth 1 https://github.com/ReceitaFederal/calculadora-rtc-regime-regular.git ../calculadora-rtc-regime-regular
+cp -r ../calculadora-rtc-regime-regular/flyway ./flyway
+```
 
 **Linux/macOS:**
 
@@ -128,7 +133,7 @@ O relatório de cobertura fica em `target/site/jacoco/index.html`.
 mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=offline"
 ```
 
-A aplicação estará disponível em `http://localhost:8080/api`.
+A aplicação estará disponível em `http://localhost:8082/api` (Swagger em `http://localhost:8082/api/swagger-ui.html`).
 
 ### 6. Gerar o JAR e Executar com java -jar (perfil offline)
 
@@ -136,14 +141,14 @@ A aplicação estará disponível em `http://localhost:8080/api`.
 
 ```bash
 ./mvnw clean package
-java -Dspring.profiles.active=offline -jar target/api-regime-geral.jar
+java -Dspring.profiles.active=offline -jar target/api-simples-nacional.jar
 ```
 
 **Windows:**
 
 ```bat
 mvnw.cmd clean package
-java "-Dspring.profiles.active=offline" -jar target\api-regime-geral.jar
+java "-Dspring.profiles.active=offline" -jar target\api-simples-nacional.jar
 ```
 
 Execute o JAR a partir da raiz do projeto, para que `./calculadora/db` seja encontrado.

@@ -1,6 +1,9 @@
 application:
   db:
     filename: calculadora-pro.db
+    download:
+      # Vazio: nos testes o banco já é gerado localmente via Flyway, sem download.
+      url: ${DB_DOWNLOAD_URL:}
 
 spring:
   application:

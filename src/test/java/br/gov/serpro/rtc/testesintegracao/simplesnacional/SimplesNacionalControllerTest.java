@@ -607,8 +607,41 @@ class SimplesNacionalControllerTest {
 
     @Test
     void naoImplementadoTambemEmNfse() throws Exception {
-        // 820001 (tributação em documento específico) é admissível apenas em
-        // NFS-e (91) e está vinculado a tratamento "sem implementação".
+        // 830001 (exclusão de base de cálculo) é admissível em NFS-e (91) e
+        // está vinculado a tratamento "sem implementação".
+        String json = """
+                {
+                  "id": "507f1f77bcf86cd799439011",
+                  "versao": "2.0.0",
+                  "data": "2027-03-15",
+                  "tpDoc": "91",
+                  "CRT": "1",
+                  "itens": [
+                    {
+                      "numero": 1,
+                      "cAtivSN": "07",
+                      "cClassTrib": "830001",
+                      "baseCalculo": "1000.00",
+                      "valorImpostoSeletivo": "0.00",
+                      "pIBSSN": "1.25",
+                      "pCBSSN": "2.75"
+                    }
+                  ]
+                }
+                """;
+
+        mockMvc.perform(post(ENDPOINT).contentType(MediaType.APPLICATION_JSON).content(json))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.objetos[0].estadoItem").value("NAO_IMPLEMENTADO"))
+            .andExpect(jsonPath("$.objetos[0].erros[0].code").value("VSN-027"))
+            .andExpect(jsonPath("$.total").doesNotExist());
+    }
+
+    @Test
+    void tributacaoEmDocumentoEspecificoCalculadaEmNfse() throws Exception {
+        // 820001 (tributação em documento específico) foi habilitado para NFS-e
+        // na V0059: o item é calculado como tpRBSN 9 (fornecimento incompatível
+        // com o SN), sem base nem tributo no Simples Nacional.
         String json = """
                 {
                   "id": "507f1f77bcf86cd799439011",
@@ -632,9 +665,12 @@ class SimplesNacionalControllerTest {
 
         mockMvc.perform(post(ENDPOINT).contentType(MediaType.APPLICATION_JSON).content(json))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.objetos[0].estadoItem").value("NAO_IMPLEMENTADO"))
-            .andExpect(jsonPath("$.objetos[0].erros[0].code").value("VSN-027"))
-            .andExpect(jsonPath("$.total").doesNotExist());
+            .andExpect(jsonPath("$.objetos[0].estadoItem").value("CALCULADO"))
+            .andExpect(jsonPath("$.objetos[0].tribCalc.tpRBSN").value(9))
+            .andExpect(jsonPath("$.objetos[0].tribCalc.vBC").value("0.00"))
+            .andExpect(jsonPath("$.objetos[0].tribCalc.vIBSSN").value("0.00"))
+            .andExpect(jsonPath("$.objetos[0].tribCalc.vCBSSN").value("0.00"))
+            .andExpect(jsonPath("$.total.totalTributos").value("0.00"));
     }
 
     @Test

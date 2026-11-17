@@ -1,169 +1,97 @@
 ## Exemplos
 
+Os exemplos usam a aplicação rodando localmente no perfil `offline` (`http://localhost:8082/api`). Os valores de saída foram obtidos com a base de dados V0059.
+
 ### Cálculo com observabilidade
 
-A operação abaixo tem quatro itens: arroz da cesta básica (redução de 100%), cerveja com Imposto Seletivo (a base de CBS/IBS é derivada da base do IS + IS), serviço de educação (redução de 60%) e um item com erro proposital (NCM não vinculada à cClassTrib).
+A operação abaixo é uma NF-e (`tpDoc` 55) de empresa do Simples Nacional (`CRT` 1) com quatro itens: dois itens de revenda de mercadorias (atividade `01`), um deles com Imposto Seletivo; um item com atividade inexistente; e um item com base de cálculo inválida.
 
 **Entrada** (`operacao.json`):
 
 ```json
 {
-  "id": "6194602ea71cbf9431c236de4409d920",
+  "id": "teste-1",
   "versao": "1.0.0",
-  "dhFatoGerador": "2027-03-10T10:00:00-03:00",
-  "municipio": 4314902,
-  "uf": "RS",
+  "data": "2027-03-15",
+  "tpDoc": "55",
+  "CRT": "1",
   "itens": [
-    {
-      "numero": 1, "ncm": "10063021", "cst": "200", "cClassTrib": "200003",
-      "baseCalculo": 100.00, "quantidade": 20, "unidade": "KG",
-      "aliquotasNominais": { "cbs": 8.8, "ibsEstadual": 0.05, "ibsMunicipal": 0.05 }
-    },
-    {
-      "numero": 2, "ncm": "22030000", "cst": "000", "cClassTrib": "000001",
-      "quantidade": 12, "unidade": "LT",
-      "impostoSeletivo": {
-        "cst": "000", "cClassTrib": "000001", "baseCalculo": 150.00,
-        "quantidade": 12, "unidade": "LT", "impostoInformado": 15.00
-      },
-      "aliquotasNominais": {
-        "cbs": 8.8, "ibsEstadual": 0.05, "ibsMunicipal": 0.05,
-        "impostoSeletivo": { "adValorem": 10.0 }
-      }
-    },
-    {
-      "numero": 3, "nbs": "122011200", "cst": "200", "cClassTrib": "200028",
-      "baseCalculo": 1200.00,
-      "aliquotasNominais": { "cbs": 8.8, "ibsEstadual": 0.05, "ibsMunicipal": 0.05 }
-    },
-    {
-      "numero": 4, "ncm": "02013000", "cst": "200", "cClassTrib": "200035",
-      "baseCalculo": 80.00,
-      "aliquotasNominais": { "cbs": 8.8, "ibsEstadual": 0.05, "ibsMunicipal": 0.05 }
-    }
+    { "numero": 1, "cAtivSN": "01", "cClassTrib": "000001", "baseCalculo": "1000.00",
+      "valorImpostoSeletivo": "0.00", "pIBSSN": "1.25", "pCBSSN": "2.75" },
+    { "numero": 2, "cAtivSN": "01", "cClassTrib": "000001", "baseCalculo": "500.00",
+      "valorImpostoSeletivo": "50.00", "pIBSSN": "1.25", "pCBSSN": "2.75" },
+    { "numero": 3, "cAtivSN": "99", "cClassTrib": "000001", "baseCalculo": "100.00",
+      "valorImpostoSeletivo": "0.00" },
+    { "numero": 4, "cAtivSN": "01", "cClassTrib": "000001", "baseCalculo": "abc",
+      "valorImpostoSeletivo": "0.00", "pIBSSN": "1.25", "pCBSSN": "2.75" }
   ]
 }
 ```
 
-Envio da operação para cálculo com observabilidade:
+Envio da operação para cálculo:
 
 ```bash
-curl -X POST http://localhost:8080/api/calculadora/observabilidade/regime-geral \
+curl -X POST http://localhost:8082/api/calculadora/observabilidade/simples-nacional \
   -H 'Content-Type: application/json' -d @operacao.json
 ```
 
-Resposta (resumida; cada grupo traz também a `memoriaCalculo` em texto):
+Resposta:
 
 ```json
 {
+  "oper": { "data": "2027-03-15", "tpDoc": "55", "CRT": "1" },
   "objetos": [
-    { "nObj": 1, "estadoItem": "CALCULO_SIMULADO", "tribCalc": { "IBSCBS": { "...": "..." } } },
-    { "nObj": 2, "estadoItem": "CALCULO_SIMULADO", "tribCalc": { "IS": { "...": "..." }, "IBSCBS": { "...": "..." } } },
-    {
-      "nObj": 3,
-      "estadoItem": "CALCULO_SIMULADO",
-      "tribCalc": { "IBSCBS": { "CST": "200", "cClassTrib": "200028", "gIBSCBS": {
-        "vBC": "1200.00",
-        "gIBSUF":  { "pIBSUF": "0.05",  "gRed": { "pRedAliq": "60.00", "pAliqEfet": "0.02" }, "vIBSUF": "0.24" },
-        "gIBSMun": { "pIBSMun": "0.05", "gRed": { "pRedAliq": "60.00", "pAliqEfet": "0.02" }, "vIBSMun": "0.24" },
-        "vIBS": "0.48",
-        "gCBS":    { "pCBS": "8.80",    "gRed": { "pRedAliq": "60.00", "pAliqEfet": "3.52" }, "vCBS": "42.24" }
-      } } }
-    },
-    {
-      "nObj": 4,
-      "estadoItem": "INCONSISTENCIA_ENTRADA",
-      "erros": [{
-        "code": "REG-011",
-        "title": "NCM não vinculada",
-        "pointer": "#/itens/3/ncm",
-        "detail": "NCM de código 02013000 não vinculada à Classificação Tributária de código 200035 (CBS e IBS)"
-      }]
-    }
+    { "nObj": 1, "estadoItem": "CALCULADO", "tribCalc": {
+        "vRBSNitem": "1000.00", "tpRBSN": 1, "tpRBSNDescricao": "Receita bruta - interna",
+        "vBC": "1000.00", "pIBSSN": "1.25", "vIBSSN": "12.50", "vIBSPendSusp": "0.00",
+        "pCBSSN": "2.75", "vCBSSN": "27.50", "vCBSPendSusp": "0.00",
+        "IS": { "valor": "0.00" }, "totalItem": "40.00" } },
+    { "nObj": 2, "estadoItem": "CALCULADO", "tribCalc": {
+        "vRBSNitem": "500.00", "tpRBSN": 1, "tpRBSNDescricao": "Receita bruta - interna",
+        "vBC": "500.00", "pIBSSN": "1.25", "vIBSSN": "6.25", "vIBSPendSusp": "0.00",
+        "pCBSSN": "2.75", "vCBSSN": "13.75", "vCBSPendSusp": "0.00",
+        "IS": { "valor": "50.00" }, "totalItem": "70.00" } },
+    { "nObj": 3, "estadoItem": "NAO_CALCULADO", "tribCalc": {
+        "vRBSNitem": "100.00", "tpRBSN": 1, "tpRBSNDescricao": "Receita bruta - interna" } },
+    { "nObj": 4, "estadoItem": "INCONSISTENCIA_ENTRADA", "erros": [{
+        "type": "http://localhost:8082/api/calculadora/observabilidade/simples-nacional/erros?codigo=VSN-002",
+        "title": "Base de cálculo do Simples inválida (negativa/não numérica)",
+        "code": "VSN-002",
+        "pointer": "#/itens/3/baseCalculo",
+        "detail": "O valor não é um número decimal válido, recebido: 'abc'." }] }
   ],
-  "total": { "tribCalc": {
-    "ISTot": { "vIS": "15.00" },
-    "IBSCBSTot": { "vBCIBSCBS": "1465.00", "gIBS": { "vIBS": "0.64" }, "gCBS": { "vCBS": "56.76" } }
-  } }
+  "total": {
+    "vRBSNtot": "1600.00", "vBC": "1500.00",
+    "vIBSSNtot": "18.75", "vIBSSNtotPendSusp": "0.00",
+    "vCBSSNtot": "41.25", "vCBSSNtotPendSusp": "0.00",
+    "totalIs": "50.00", "totalTributos": "110.00"
+  }
 }
 ```
 
-- A resposta é HTTP 200 mesmo com itens em erro. Por isso, verifique o `estadoItem` de cada item: `CALCULADO`, `CALCULO_SIMULADO`, `INCONSISTENCIA_ENTRADA`, `NAO_IMPLEMENTADO` ou `FALHA_TECNICA`.
-- Os totais somam apenas os itens calculados.
-- Enviada para `POST /regime-geral`, a mesma operação é rejeitada inteira com HTTP 422 por causa do item 4.
-- A partir de 2027, `aliquotasNominais` é obrigatório; antes disso, é proibido. Os cálculos com alíquotas informadas saem como `CALCULO_SIMULADO`, e o header `x-warning-dados-simulados` indica o motivo.
-- O campo `dataHoraEmissao` está obsoleto; use `dhFatoGerador`.
+- Erros de item não interrompem os demais: a resposta é HTTP 200 e cada item traz seu `estadoItem` (`CALCULADO`, `NAO_CALCULADO`, `INCONSISTENCIA_ENTRADA`, `NAO_IMPLEMENTADO` ou `FALHA_TECNICA`).
+- Erros globais da operação (por exemplo `id`/`versao` ausentes, MEI com `CRT` 4, `tpDoc` não suportado na data) rejeitam a operação inteira com HTTP 422.
+- Atividade (`cAtivSN`) ausente, desconhecida ou não admissível para o `tpDoc` deixa o item como `NAO_CALCULADO`, sem erro.
+- O valor do Imposto Seletivo não compõe a receita bruta do item; é apenas repassado e somado ao `totalItem`.
 
-### Base de cálculo unificada (NF-e/NFC-e)
+### Variações do regime
 
-Os componentes ficam no mesmo nível dos demais campos, e não dentro de um objeto aninhado. `tipoDocumento` aceita `55` (NF-e) ou `65` (NFC-e), e `natureza` aceita `bem` ou `servico`.
-
-**Entrada** (`base.json`):
-
-```json
-{
-  "anoFatoGerador": 2027,
-  "tipoDocumento": 55,
-  "natureza": "bem",
-  "vProd": 1000.00,
-  "vFrete": 50.00,
-  "vSeg": 20.00,
-  "vOutro": 10.00,
-  "vDesc": 50.00,
-  "vIS": 30.00,
-  "vPIS": 9.25,
-  "vCOFINS": 46.25,
-  "vICMS": 180.00,
-  "vFCP": 10.00
-}
-```
-
-Envio da entrada para cálculo da base unificada:
-
-```bash
-curl -X POST http://localhost:8080/api/calculadora/base-calculo/base-calculo-unificada \
-  -H 'Content-Type: application/json' -d @base.json
-```
-
-Resposta (os avisos indicam campos ignorados no ano informado):
-
-```json
-{
-  "baseRG": 870.00000000,
-  "baseIS": 840.00000000,
-  "baseSN": 1060.00000000,
-  "avisos": [
-    "Campo vPIS não compõe as bases para o ano 2027 (vigência 2026–2026) e foi ignorado no cálculo",
-    "Campo vCOFINS não compõe as bases para o ano 2027 (vigência 2026–2026) e foi ignorado no cálculo"
-  ]
-}
-```
-
-A API aplica a vigência de cada componente ao ano informado. Em 2027, por exemplo, ICMS e FCP ainda são deduzidos da base do regime geral (`baseRG`), mas PIS e COFINS deixam de existir e são ignorados, com aviso.
+| Cenário | Campos da operação | Efeito no item do exemplo (base 1000,00) |
+|---|---|---|
+| Excesso de sublimite | `"CRT": "2"` | Calcula apenas a CBS (27,50); o IBS não sai na resposta |
+| Apuração por fora | `"CRT": "3", "tpRegimeIBSCBS": "2"` | IBS e CBS vão para `vIBSPendSusp` (12,50) e `vCBSPendSusp` (27,50); `totalItem` 0,00 |
+| Compra governamental | `"tpEnteGov": "2"` com `"data": "2030-03-15"` | 20% da CBS é deslocada para o IBS: `pCBSSN` 2,20 e `pIBSSN` 1,80 |
 
 ### Consultas
 
-Consultas aos dados abertos (`B` é a URL base da API):
-
 ```bash
-B=http://localhost:8080/api/calculadora/dados-abertos
-curl "$B/classificacoes-tributarias/cbs-ibs/class-trib/200028?data=2027-01-01"
-curl "$B/fundamentacoes-legais?data=2027-01-01"
-curl "$B/ncm?ncm=22030000&data=2027-01-01"
-curl "$B/aliquota-uf?codigoUf=43&data=2026-06-01"
+B=http://localhost:8082/api
+# Atividades vigentes na data (filtros opcionais: anexos, tpDoc, cClassTrib)
+curl "$B/calculadora/simples-nacional/atividades?data=2027-03-15&tpDoc=55"
+# Uma atividade pelo código
+curl "$B/calculadora/simples-nacional/atividades/01?data=2027-03-15"
+# Descrição de um código de erro
+curl "$B/calculadora/observabilidade/simples-nacional/erros?codigo=VSN-002"
+# Versão da aplicação e da base de dados
+curl "$B/versao"
 ```
-
-As alíquotas de referência estão cadastradas apenas para 2026. A partir de 2027, a consulta retorna 404, e as alíquotas devem ser informadas em `aliquotasNominais`.
-
-### Geração e validação de XML
-
-Geração e validação do XML do grupo de tributação a partir da resposta de `POST /regime-geral`:
-
-```bash
-C=http://localhost:8080/api/calculadora
-# resultado.json: resposta de POST /regime-geral (não a da observabilidade)
-curl -X POST "$C/xml/generate?tipo=nfe" -H 'Content-Type: application/json' -d @resultado.json -o grupo.xml
-curl -X POST "$C/xml/validate?tipo=nfe&subtipo=grupo" -H 'Content-Type: application/xml' --data-binary @grupo.xml
-```
-
-A validação retorna `true` quando o XML é válido; caso contrário, retorna HTTP 422 com a linha e a coluna do erro. O parâmetro `subtipo` aceita `grupo` (apenas os grupos de tributação) ou `nota` (documento completo). `GET /xml/generate` e `GET /xml/validate` listam os tipos de documento aceitos.
