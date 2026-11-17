@@ -25,3 +25,8 @@ replay_pid*
 
 # Build
 .mirror-manifest
+
+# Gerados localmente (build, banco SQLite e scripts Flyway copiados do regime regular)
+target/
+calculadora/
+flyway/

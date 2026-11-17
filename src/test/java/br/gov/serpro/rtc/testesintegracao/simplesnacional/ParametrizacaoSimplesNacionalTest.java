@@ -63,19 +63,20 @@ class ParametrizacaoSimplesNacionalTest {
     void classificacoesSemTratamentoImplementado_conformeACargaVigente() {
         // Tratamentos tributários com TRTR_IN_POSSUI_AJUSTE = 1 na carga atual:
         // monofasia de combustíveis (62xxxx), hidrocarbonetos (550023),
-        // transferência de crédito/ajustes/documento específico/exclusão de BC
-        // (8xxxxx) e incorporação imobiliária (2210xx). Toda classificação da
-        // CBS vinculada a eles, vigente na data, é NAO_IMPLEMENTADO no cálculo.
+        // transferência de crédito/ajustes/exclusão de BC (800, 810, 811, 830)
+        // e incorporação imobiliária (2210xx). Toda classificação da CBS
+        // vinculada a eles, vigente na data, é NAO_IMPLEMENTADO no cálculo.
         for (String codigo : List.of("550023", "620001", "620002", "620006", "620007", "800001", "800002",
-                "810001", "811001", "811003", "820001", "820005", "820008", "820009", "830001", "221002",
-                "221004")) {
+                "810001", "811001", "811003", "830001", "221002", "221004")) {
             assertTrue(classificacaoRepository.contarTratamentosNaoImplementados(codigo, DATA_PADRAO) > 0,
                     () -> "cClassTrib " + codigo + " deveria estar marcado como sem implementação em "
                             + DATA_PADRAO);
         }
         // Classificações implementadas (tributação integral, imunidade, tpRBSN
-        // 9 e 5) e código inexistente: contagem zero.
-        for (String codigo : List.of("000001", "410001", "010001", "222001", "999999")) {
+        // 9 e 5; tributação em documento específico — 820xxx, habilitada na
+        // V0059) e código inexistente: contagem zero.
+        for (String codigo : List.of("000001", "410001", "010001", "222001", "820001", "820005", "820008",
+                "820009", "999999")) {
             assertEquals(0, classificacaoRepository.contarTratamentosNaoImplementados(codigo, DATA_PADRAO),
                     () -> "cClassTrib " + codigo + " NÃO deveria estar marcado como sem implementação");
         }
